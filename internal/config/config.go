@@ -34,3 +34,25 @@ func GetConfigFilePath() string {
 	url := home + "/.gatorconfig.json"
 	return url
 }
+
+type State struct {
+	ConfigPtr *Config
+}
+
+type Command struct {
+	Name string
+	Args []string
+}
+
+type Commands struct {
+	CommandMap map[string]func(*State, Command) error
+}
+
+func (c *Commands) Run(s *State, cmd Command) error {
+	err := c.CommandMap[cmd.Name](s, cmd)
+	return err
+}
+
+func (c *Commands) Register(name string, f func(*State, Command) error) {
+	c.CommandMap[name] = f
+}

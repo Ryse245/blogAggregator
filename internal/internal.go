@@ -28,3 +28,12 @@ func PrintConfig(cfg config.Config) {
 	fmt.Printf("Database URL: %s\n", cfg.Db_Url)
 	fmt.Printf("Current User Name: %s\n", cfg.Current_User_Name)
 }
+
+func HandlerLogin(s *config.State, cmd config.Command) error {
+	if len(cmd.Args) == 0 {
+		return fmt.Errorf("No arguments provided")
+	}
+	s.ConfigPtr.SetUser(cmd.Args[0])
+	fmt.Println("User has been set")
+	return nil
+}
