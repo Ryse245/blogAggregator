@@ -1,19 +1,29 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 
+	_ "github.com/lib/pq"
+
 	internal "github.com/Ryse245/blogAggregator/internal"
+
 	config "github.com/Ryse245/blogAggregator/internal/config"
+	"github.com/Ryse245/blogAggregator/internal/database"
 )
 
 func main() {
 	configGet := internal.Read()
-	blogState := config.State{ConfigPtr: &configGet}
+
+	db, err := sql.Open("postgres", configGet.Db_Url)
+	dbQueries := database.New(db)
+
+	blogState := config.State{ConfigPtr: &configGet, DbPtr: dbQueries}
 	blogCommands := config.Commands{CommandMap: map[string]func(*config.State, config.Command) error{}}
 	//Add commands here
 	blogCommands.Register("login", internal.HandlerLogin)
+	blogCommands.Register("register", internal.HandlerRegister)
 
 	fullArguments := os.Args
 
@@ -24,7 +34,7 @@ func main() {
 	justCommand := fullArguments[1]
 	additionalArgs := fullArguments[2:]
 	commandData := config.Command{Name: justCommand, Args: additionalArgs}
-	err := blogCommands.Run(&blogState, commandData)
+	err = blogCommands.Run(&blogState, commandData)
 	if err != nil {
 		fmt.Printf("Error on running command: %v\n", err)
 		os.Exit(1)

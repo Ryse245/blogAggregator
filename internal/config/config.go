@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"github.com/Ryse245/blogAggregator/internal/database"
 )
 
 type Config struct {
@@ -36,6 +38,7 @@ func GetConfigFilePath() string {
 }
 
 type State struct {
+	DbPtr     *database.Queries
 	ConfigPtr *Config
 }
 
