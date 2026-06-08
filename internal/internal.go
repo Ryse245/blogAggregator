@@ -67,3 +67,8 @@ func HandlerRegister(s *config.State, cmd config.Command) error {
 	fmt.Printf("User %s created\nData: \nCreated at: %v\nUpdated at: %v\nUser ID: %v\n", user.Name, user.CreatedAt, user.UpdatedAt, user.ID)
 	return nil
 }
+
+func HanddlerReset(s *config.State, cmd config.Command) error {
+	err := s.DbPtr.DeleteUsers(context.Background())
+	return err
+}

@@ -24,6 +24,7 @@ func main() {
 	//Add commands here
 	blogCommands.Register("login", internal.HandlerLogin)
 	blogCommands.Register("register", internal.HandlerRegister)
+	blogCommands.Register("reset", internal.HanddlerReset)
 
 	fullArguments := os.Args
 
