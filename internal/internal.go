@@ -72,3 +72,15 @@ func HanddlerReset(s *config.State, cmd config.Command) error {
 	err := s.DbPtr.DeleteUsers(context.Background())
 	return err
 }
+
+func HandlerGetUsers(s *config.State, cmd config.Command) error {
+	users, err := s.DbPtr.GetUsers(context.Background())
+	for _, user := range users {
+		userName := user.Name
+		if userName == s.ConfigPtr.Current_User_Name {
+			userName += " (current)"
+		}
+		fmt.Printf("* %s\n", userName)
+	}
+	return err
+}
