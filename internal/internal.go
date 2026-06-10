@@ -3,7 +3,11 @@ package internal
 import (
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
+	"html"
+	"io"
+	"net/http"
 	"os"
 	"time"
 
@@ -83,4 +87,55 @@ func HandlerGetUsers(s *config.State, cmd config.Command) error {
 		fmt.Printf("* %s\n", userName)
 	}
 	return err
+}
+
+func HandlerGetFeed(s *config.State, cmd config.Command) error {
+
+	//if len(cmd.Args) == 0 {
+	//	return fmt.Errorf("No arguments provided")
+	//}
+	//url := cmd.Args[0]
+	url := "https://www.wagslane.dev/index.xml" //Stupid hard-coding for Boot Dev
+	feed, err := FetchFeed(context.Background(), url)
+	if err != nil {
+		fmt.Println("Error in Fetch Feed call")
+		return err
+	}
+	fmt.Printf("%v", feed)
+	return nil
+}
+
+func FetchFeed(ctx context.Context, feedURL string) (*config.RSSFeed, error) {
+	request, err := http.NewRequestWithContext(ctx, "GET", feedURL, nil)
+	if err != nil {
+		fmt.Println("Error in New Request With Context")
+		return nil, err
+	}
+	request.Header.Set("User-Agent", "gator")
+	var client http.Client
+	response, err := client.Do(request)
+	if err != nil {
+		fmt.Println("Error in Client Do")
+		return nil, err
+	}
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		fmt.Println("Error in Read All")
+		return nil, err
+	}
+	var feed config.RSSFeed
+	err = xml.Unmarshal(body, &feed)
+	if err != nil {
+		fmt.Println("Error in Unmarshal")
+		return nil, err
+	}
+
+	feed.Channel.Description = html.UnescapeString(feed.Channel.Description)
+	feed.Channel.Title = html.UnescapeString(feed.Channel.Title)
+	for i := 0; i < len(feed.Channel.Item); i++ {
+		feed.Channel.Item[i].Title = html.UnescapeString(feed.Channel.Item[i].Title)
+		feed.Channel.Item[i].Description = html.UnescapeString(feed.Channel.Item[i].Description)
+	}
+
+	return &feed, nil
 }
