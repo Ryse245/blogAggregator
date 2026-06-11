@@ -19,10 +19,10 @@ import (
 func Read() config.Config {
 	url := config.GetConfigFilePath()
 	file, err := os.Open(url)
-	defer file.Close()
 	if err != nil {
 		fmt.Printf("Error opening file: %v\n", err)
 	}
+	defer file.Close()
 	var parseConfig config.Config
 	parser := json.NewDecoder(file)
 	if err = parser.Decode(&parseConfig); err != nil {
@@ -89,6 +89,18 @@ func HandlerGetUsers(s *config.State, cmd config.Command) error {
 	return err
 }
 
+func HandlerGetFeeds(s *config.State, cmd config.Command) error {
+	feeds, err := s.DbPtr.GetFeeds(context.Background())
+	for _, feed := range feeds {
+		userName, err := s.DbPtr.GetUserFromID(context.Background(), feed.UserID)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Feed Name: %s, URL: %s, Owner: %s\n", feed.Name, feed.Url, userName.Name)
+	}
+	return err
+}
+
 func HandlerGetFeed(s *config.State, cmd config.Command) error {
 
 	//if len(cmd.Args) == 0 {
@@ -99,6 +111,27 @@ func HandlerGetFeed(s *config.State, cmd config.Command) error {
 	feed, err := FetchFeed(context.Background(), url)
 	if err != nil {
 		fmt.Println("Error in Fetch Feed call")
+		return err
+	}
+	fmt.Printf("%v", feed)
+	return nil
+}
+
+func HandlerAddFeed(s *config.State, cmd config.Command) error {
+	if len(cmd.Args) < 2 {
+		fmt.Println("Not enough arguments provided")
+		os.Exit(1)
+	}
+	currentUserID, err := s.DbPtr.GetUser(context.Background(), s.ConfigPtr.Current_User_Name)
+	if err != nil {
+		return err
+	}
+	feedName := cmd.Args[0]
+	feedUrl := cmd.Args[1]
+	params := database.CreateFeedParams{ID: int32(uuid.New()[0]), CreatedAt: time.Now(), UpdatedAt: time.Now(), Name: feedName,
+		Url: feedUrl, UserID: currentUserID.ID}
+	feed, err := s.DbPtr.CreateFeed(context.Background(), params)
+	if err != nil {
 		return err
 	}
 	fmt.Printf("%v", feed)

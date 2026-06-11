@@ -27,6 +27,8 @@ func main() {
 	blogCommands.Register("reset", internal.HanddlerReset)
 	blogCommands.Register("users", internal.HandlerGetUsers)
 	blogCommands.Register("agg", internal.HandlerGetFeed)
+	blogCommands.Register("addfeed", internal.HandlerAddFeed)
+	blogCommands.Register("feeds", internal.HandlerGetFeeds)
 
 	fullArguments := os.Args
 
