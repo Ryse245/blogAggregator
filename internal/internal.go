@@ -117,25 +117,35 @@ func HandlerGetFeed(s *config.State, cmd config.Command) error {
 	return nil
 }
 
-func HandlerAddFeed(s *config.State, cmd config.Command) error {
+func MiddlewareLoggedIn(handler func(s *config.State, cmd config.Command, user database.User) error) func(*config.State, config.Command) error {
+	return func(s *config.State, cmd config.Command) error {
+		currentUser, err := s.DbPtr.GetUser(context.Background(), s.ConfigPtr.Current_User_Name)
+		if err != nil {
+			return err
+		}
+		return handler(s, cmd, currentUser)
+	}
+}
+
+func HandlerAddFeed(s *config.State, cmd config.Command, user database.User) error {
 	if len(cmd.Args) < 2 {
 		fmt.Println("Not enough arguments provided")
 		os.Exit(1)
 	}
-	currentUserID, err := s.DbPtr.GetUser(context.Background(), s.ConfigPtr.Current_User_Name)
-	if err != nil {
-		return err
-	}
 	feedName := cmd.Args[0]
 	feedUrl := cmd.Args[1]
 	params := database.CreateFeedParams{ID: int32(uuid.New()[0]), CreatedAt: time.Now(), UpdatedAt: time.Now(), Name: feedName,
-		Url: feedUrl, UserID: currentUserID.ID}
+		Url: feedUrl, UserID: user.ID}
 	feed, err := s.DbPtr.CreateFeed(context.Background(), params)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("%v", feed)
-	return nil
+
+	newArg := [1]string{feedUrl}
+	newCmd := config.Command{Name: cmd.Name, Args: newArg[:]}
+	err = HandlerCreateFeedFollow(s, newCmd, user)
+	return err
 }
 
 func FetchFeed(ctx context.Context, feedURL string) (*config.RSSFeed, error) {
@@ -171,4 +181,37 @@ func FetchFeed(ctx context.Context, feedURL string) (*config.RSSFeed, error) {
 	}
 
 	return &feed, nil
+}
+
+func HandlerCreateFeedFollow(s *config.State, cmd config.Command, user database.User) error {
+	if len(cmd.Args) < 1 {
+		fmt.Println("Not enough arguments provided")
+		os.Exit(1)
+	}
+	url := cmd.Args[0]
+	feed, err := s.DbPtr.GetFeedFromUrl(context.Background(), url)
+	if err != nil || feed.Url == "" {
+		fmt.Println("Error in Get Feed From Url")
+		return err
+	}
+	params := database.CreateFeedFollowParams{ID: int32(uuid.New()[0]), CreatedAt: time.Now(), UpdatedAt: time.Now(), UserID: user.ID, FeedID: feed.ID}
+	data, err := s.DbPtr.CreateFeedFollow(context.Background(), params)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Feed: %s\n", data.FeedName)
+	fmt.Printf("User: %s\n", data.UserName)
+	return nil
+}
+
+func HandlerGetFeedFollowsFromUser(s *config.State, cmd config.Command, user database.User) error {
+	follows, err := s.DbPtr.GetFeedFollowsFromUserId(context.Background(), user.ID)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Current User: %s\n", s.ConfigPtr.Current_User_Name)
+	for _, row := range follows {
+		fmt.Printf("- Following Feed: %s\n", row.FeedName)
+	}
+	return nil
 }
