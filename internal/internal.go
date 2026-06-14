@@ -215,3 +215,16 @@ func HandlerGetFeedFollowsFromUser(s *config.State, cmd config.Command, user dat
 	}
 	return nil
 }
+
+func HandlerUnfollowFeed(s *config.State, cmd config.Command, user database.User) error {
+	feedID, err := s.DbPtr.GetFeedFromUrl(context.Background(), cmd.Args[0])
+	if err != nil {
+		return err
+	}
+	param := database.DeleteFeedFollowsParams{UserID: user.ID, FeedID: feedID.ID}
+	err = s.DbPtr.DeleteFeedFollows(context.Background(), param)
+	if err != nil {
+		return err
+	}
+	return nil
+}

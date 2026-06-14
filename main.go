@@ -31,6 +31,7 @@ func main() {
 	blogCommands.Register("feeds", internal.HandlerGetFeeds)
 	blogCommands.Register("follow", internal.MiddlewareLoggedIn(internal.HandlerCreateFeedFollow))
 	blogCommands.Register("following", internal.MiddlewareLoggedIn(internal.HandlerGetFeedFollowsFromUser))
+	blogCommands.Register("unfollow", internal.MiddlewareLoggedIn(internal.HandlerUnfollowFeed))
 
 	fullArguments := os.Args
 
