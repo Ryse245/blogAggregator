@@ -103,18 +103,29 @@ func HandlerGetFeeds(s *config.State, cmd config.Command) error {
 
 func HandlerGetFeed(s *config.State, cmd config.Command) error {
 
-	//if len(cmd.Args) == 0 {
-	//	return fmt.Errorf("No arguments provided")
-	//}
-	//url := cmd.Args[0]
-	url := "https://www.wagslane.dev/index.xml" //Stupid hard-coding for Boot Dev
-	feed, err := FetchFeed(context.Background(), url)
+	if len(cmd.Args) == 0 {
+		return fmt.Errorf("No arguments provided")
+	}
+	/*
+		url := "https://www.wagslane.dev/index.xml" //Stupid hard-coding for Boot Dev
+		feed, err := FetchFeed(context.Background(), url)
+		if err != nil {
+			fmt.Println("Error in Fetch Feed call")
+			return err
+		}
+		fmt.Printf("%v", feed)
+		return nil*/
+	time_between_str := cmd.Args[0]
+	time_between, err := time.ParseDuration(time_between_str)
 	if err != nil {
-		fmt.Println("Error in Fetch Feed call")
 		return err
 	}
-	fmt.Printf("%v", feed)
-	return nil
+	fmt.Printf("Collecting feeds every %v\n", time_between)
+	ticker := time.NewTicker(time_between)
+	for ; ; <-ticker.C {
+		fmt.Println("Collecting new feed now...")
+		ScrapeFeeds(s, cmd)
+	}
 }
 
 func MiddlewareLoggedIn(handler func(s *config.State, cmd config.Command, user database.User) error) func(*config.State, config.Command) error {
@@ -225,6 +236,22 @@ func HandlerUnfollowFeed(s *config.State, cmd config.Command, user database.User
 	err = s.DbPtr.DeleteFeedFollows(context.Background(), param)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func ScrapeFeeds(s *config.State, cmd config.Command) error {
+	nextFeed, err := s.DbPtr.GetNextFeedToFetch(context.Background())
+	if err != nil {
+		return err
+	}
+	err = s.DbPtr.MarkFeedFetched(context.Background(), nextFeed.ID)
+	feedData, err := FetchFeed(context.Background(), nextFeed.Url)
+	if err != nil {
+		return err
+	}
+	for _, item := range feedData.Channel.Item {
+		fmt.Printf("Item Title: %s\n", item.Title)
 	}
 	return nil
 }
